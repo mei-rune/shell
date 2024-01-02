@@ -8,7 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mei-rune/shell/sim/telnetd"
+	// "github.com/mei-rune/shell/sim/telnetd"
+	"tech.hengwei.com.cn/go/private/sim/telnetd"
 
 	"github.com/mei-rune/shell"
 )

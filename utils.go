@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"io"
 	"unicode"
+	"fmt"
 
 	"github.com/runner-mei/errors"
 )
@@ -150,7 +151,10 @@ func SplitLines(bs []byte) [][]byte {
 	scanner := bufio.NewScanner(bytes.NewReader(bs))
 	res := make([][]byte, 0, 10)
 	for scanner.Scan() {
-		res = append(res, scanner.Bytes())
+		bs := make([]byte, len(scanner.Bytes()))
+		copy(bs, scanner.Bytes())
+
+		res = append(res, bs)
 	}
 
 	if nil != scanner.Err() {
@@ -324,6 +328,10 @@ func ParseCmdOutput(bs []byte, cmd, prompt, characteristic []byte) ([]byte, erro
 	lineArray := SplitLines(bs)
 	if nil == lineArray || 0 == len(lineArray) {
 		return nil, errors.New("console output is empty")
+	}
+
+	for idx := range lineArray {
+		fmt.Printf("%q\r\n", ToHexStringIfNeed(lineArray[idx]))
 	}
 
 	fullPrompt := bytes.TrimRightFunc(lineArray[len(lineArray)-1], unicode.IsSpace)

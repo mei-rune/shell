@@ -8,7 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mei-rune/shell/sim/telnetd"
+	// "github.com/mei-rune/shell/sim/telnetd"
+	"tech.hengwei.com.cn/go/private/sim/telnetd"
+	"tech.hengwei.com.cn/go/private/sim/sshd"
 
 	"github.com/mei-rune/shell"
 )
@@ -33,6 +35,60 @@ var h3cConfigurations = []string{
 	`#
 return
 `,
+}
+
+
+
+func TestH3CForSSH(t *testing.T) {
+
+	// go http.ListenAndServe(":12445", nil)
+
+	moreAfter := append([]byte{0x1b}, []byte("[42D                                          ")...)
+	moreAfter = append(moreAfter, 0x1b)
+	moreAfter = append(moreAfter, []byte("[42D")...)
+
+	welcome := []byte{0xFF, 0xFB, 0x01, 0xFF, 0xFB, 0x01, 0xFF, 0xFB, 0x01, 0xFF, 0xFB, 0x03, 0xFF, 0xFD, 0x18, 0xFF, 0xFD, 0x1F, 0x0D, 0x0A}
+	welcome = append(welcome, []byte("********************************************************************************\r\n"+
+		"*  Copyright(c) 2004-2014 Hangzhou H3C Tech. Co., Ltd. All rights reserved.    *\r\n"+
+		"*  Without the owner's prior written consent,                                  *\r\n"+
+		"*  no decompiling or reverse-engineering shall be allowed.                     *\r\n"+
+		"********************************************************************************\r\n")...)
+	welcome = append(welcome, 0xFF, 0xFE, 0x1F, 0xFF, 0xFA, 0x18, 0x01, 0xFF, 0xF0, 0xFF, 0xFA, 0x18, 0x01, 0xFF, 0xF0)
+	welcome = append(welcome, []byte("\r\n\r\nLogin authentication\r\n\r\n")...)
+
+	options := &sshd.Options{}
+	options.SetWelcome(welcome)
+	options.AddUserPassword("admin1", "admin2")
+
+	options.WithNoEnable("ABC>", sshd.OS(telnetd.Commands{
+			"display": sshd.WithCommands(telnetd.Commands{
+				"current-configuration": sshd.WithMore(h3cConfigurations, []byte(" ---- More ----"), moreAfter),
+			}),
+		}))
+
+	listener, err := sshd.StartServer(":", options)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	defer listener.Close()
+
+	port := listener.Port()
+	ctx := context.Background()
+
+	params := &SSHParam{
+		// Timeout: 30 * time.Second,
+		Address: "127.0.0.1",
+		Port:    port,
+		// UserQuest: "",
+		Username: "admin1",
+		// PasswordQuest: "",
+		Password:            "admin2",
+		Prompt:              "",
+		UseCRLF:             true,
+	}
+
+	testSSHH3C(t, ctx, params, false)
 }
 
 func TestH3C(t *testing.T) {
@@ -192,6 +248,50 @@ func testTelnetH3C(t *testing.T, ctx context.Context, params *TelnetParam, hasVi
 	t.Log(s)
 	//fmt.Println(s)
 }
+
+
+func testSSHH3C(t *testing.T, ctx context.Context, params *SSHParam, hasView bool) {
+	var buf bytes.Buffer
+	c, prompt, err := DailSSH(ctx, params, ClientWriter(&buf), ServerWriter(&buf), Question(AbcQuestion.Prompts(), AbcQuestion.Do()))
+
+	if err != nil {
+		t.Error(err)
+		// t.Error(buf.Len(), buf.String())
+
+		s := shell.ToHexStringIfNeed(buf.Bytes())
+		t.Log(s)
+		fmt.Println(s)
+		return
+	}
+
+	conn := &Shell{Conn: c, Prompt: prompt}
+	defer conn.Close()
+
+	if hasView {
+		err = conn.WithView(ctx, []byte("system-view"), [][]byte{[]byte("]")})
+		if err != nil {
+			t.Error(err)
+			return
+		}
+	}
+
+	result, err := Exec(ctx, conn, "display current-configuration")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	conn.Close()
+
+	if !strings.Contains(result.Incomming, "super password level 3 cipher $c$3$/MfGj/XsuoyLY4gwyW7wVWNz1b0Vig==") {
+		t.Errorf("want 'super password level 3 cipher' got %s", result.Incomming)
+	}
+	t.Log(result.Incomming)
+
+	s := shell.ToHexStringIfNeed(buf.Bytes())
+	t.Log(s)
+	//fmt.Println(s)
+}
+
 
 func TestH3CWithSystemView(t *testing.T) {
 

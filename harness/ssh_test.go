@@ -6,7 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mei-rune/shell/sim/sshd"
+	// "github.com/mei-rune/shell/sim/sshd"
+	"tech.hengwei.com.cn/go/private/sim/sshd"
 
 	"github.com/mei-rune/shell"
 )
