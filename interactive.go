@@ -397,13 +397,17 @@ func UserLogin(ctx context.Context, conn Conn, userPrompts [][]byte, username []
 }
 
 func ReadPrompt(ctx context.Context, conn Conn, prompts [][]byte, matchs ...Matcher) ([]byte, error) {
-	if len(prompts) == 0 {
-		prompts = defaultPrompts
-	}
-
 	var buf bytes.Buffer
 	cancel := conn.SetTeeOutput(&buf)
 	defer cancel()
+
+	return readPrompt(ctx, &buf, conn, prompts, matchs...)
+}
+
+func readPrompt(ctx context.Context, buf *bytes.Buffer, conn Conn, prompts [][]byte, matchs ...Matcher) ([]byte, error) {
+	if len(prompts) == 0 {
+		prompts = defaultPrompts
+	}
 
 	isPrompt := false
 
@@ -537,13 +541,16 @@ func WithEnable(ctx context.Context, conn Conn, enableCmd []byte, passwordPrompt
 
 	// fmt.Println("send enable '" + string(enableCmd) + "' ok and read enable password prompt")
 
+	var buf bytes.Buffer
+	cancel := conn.SetTeeOutput(&buf)
+	defer cancel()
+
 	if !IsNonePassword(password) {
+
 		var isPrompt bool
-		var output []byte
 		err := Expect(ctx, conn,
 			Match(enablePrompts, func(c Conn, bs []byte, nidx int) (bool, error) {
 				isPrompt = true
-				output = bs
 				return false, nil
 			}),
 			Match(append(passwordPrompts, h3cSuperResponse), func(c Conn, bs []byte, nidx int) (bool, error) {
@@ -560,6 +567,15 @@ func WithEnable(ctx context.Context, conn Conn, enableCmd []byte, passwordPrompt
 		}
 
 		if isPrompt {
+			if _, err := conn.DrainOff(5 * time.Second); err != nil {
+				return nil, errors.New("read prompt failed, drain off, " + err.Error())
+			}
+
+			output := buf.Bytes()
+			if len(output) == 0 {
+				return nil, errors.New("read prompt failed, received is empty")
+			}
+
 			prompt := GetPrompt(output, enablePrompts)
 			if len(prompt) == 0 {
 				return nil, errors.New("read prompt '" + string(bytes.Join(enablePrompts, []byte(","))) + "' failed: \r\n" + ToHexStringIfNeed(output))
@@ -567,24 +583,36 @@ func WithEnable(ctx context.Context, conn Conn, enableCmd []byte, passwordPrompt
 			return prompt, nil
 		}
 	}
-	return ReadPrompt(ctx, conn, enablePrompts)
+	return readPrompt(ctx, &buf, conn, enablePrompts)
 }
 
 func WithView(ctx context.Context, conn Conn, cmd []byte, newPrompts [][]byte) ([]byte, error) {
+	var buf bytes.Buffer
+	cancel := conn.SetTeeOutput(&buf)
+	defer cancel()
+
 	if e := conn.Sendln(cmd); nil != e {
 		return nil, errors.Wrap(e, "send '"+string(cmd)+"' failed")
 	}
 
-	var output []byte
 	err := Expect(ctx, conn,
 		Match(newPrompts, func(c Conn, bs []byte, nidx int) (bool, error) {
-			output = bs
 			return false, nil
 		}),
 	)
 	if err != nil {
 		return nil, err
 	}
+
+	if _, err := conn.DrainOff(5 * time.Second); err != nil {
+		return nil, errors.New("read prompt failed, drain off, " + err.Error())
+	}
+
+	output := buf.Bytes()
+	if len(output) == 0 {
+		return nil, errors.New("read prompt failed, received is empty")
+	}
+
 
 	prompt := GetPrompt(output, newPrompts)
 	if len(prompt) == 0 {
