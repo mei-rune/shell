@@ -342,7 +342,7 @@ func (s *Shell) exec(ctx context.Context, command []byte) error {
 		return errors.New("无连接")
 	}
 
-	_, err := s.Conn.DrainOff()
+	_, err := s.Conn.DrainOff(0)
 	if err != nil {
 		if err == io.EOF {
 			return errors.New("执行命令之前清空缓存失败: 连接断开")

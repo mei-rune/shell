@@ -7,6 +7,7 @@ import (
 	"net"
 	"strconv"
 	"unicode"
+	"time"
 
 	"github.com/runner-mei/errors"
 )
@@ -359,6 +360,10 @@ func UserLogin(ctx context.Context, conn Conn, userPrompts [][]byte, username []
 		}
 
 		if status == 3 {
+			if _, err := conn.DrainOff(1 * time.Second); err != nil {
+				return nil, errors.New("read prompt failed, drain off, " + err.Error())
+			}
+
 			received := buf.Bytes()
 			if len(received) == 0 {
 				return nil, errors.New("read prompt failed, received is empty")
@@ -421,6 +426,10 @@ func ReadPrompt(ctx context.Context, conn Conn, prompts [][]byte, matchs ...Matc
 		if isPrompt {
 			break
 		}
+	}
+
+	if _, err := conn.DrainOff(1 * time.Second); err != nil {
+		return nil, errors.New("read prompt failed, drain off, " + err.Error())
 	}
 
 	received := buf.Bytes()

@@ -7,7 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mei-rune/shell/sim/sshd"
+	// "github.com/mei-rune/shell/sim/sshd"
+	"tech.hengwei.com.cn/go/private/sim/sshd"
 )
 
 var answerNo = Match("abc? [Y/N]:", SayNoCRLF)
@@ -48,6 +49,54 @@ func TestSSHSimSimple1(t *testing.T) {
 	}
 	testSimSimple(t, ctx, conn, prompt)
 }
+
+func TestSSHSimSimplePrompt(t *testing.T) {
+	options := &sshd.Options{}
+	options.AddUserPassword("abc", "123")
+
+	//options.WithEnable("ABC>", "enable", "password:", "testsx", "", "abc#", sshd.Echo)
+	options.WithNoEnable("ABC>>", sshd.Echo)
+
+	listener, err := sshd.StartServer(":", options)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	defer listener.Close()
+
+	port := listener.Port()
+	ctx := context.Background()
+
+	//  conn, err := ConnectPlink(net.JoinHostPort("127.0.0.1", port), "abc", "123", "")
+	conn, err := ConnectSSH(net.JoinHostPort("127.0.0.1", port), "abc", "123", "", nil, nil)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	defer conn.Close()
+
+	conn.UseCRLF()
+	conn.SetReadDeadline(1 * time.Second)
+
+	prompt, err := ReadPrompt(ctx, conn, [][]byte{[]byte(">")}, answerNo)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+		t.Log(string(prompt))
+	if string(prompt) != "ABC>>" {
+		t.Error("want ABC>> got", string(prompt))
+	}
+
+	output, err := Exec(ctx, conn, prompt, []byte("echo ABC>abcd"))
+	if err != nil {
+		t.Error(err)
+	} else if !strings.Contains(string(output), "print ABC>abcd") {
+		t.Errorf("want 'print ABC>abcd' got %s", output)
+	}
+}
+
 
 func TestSSHSimSimple2(t *testing.T) {
 	options := &sshd.Options{}
@@ -119,6 +168,73 @@ func TestSSHSimWithEnable(t *testing.T) {
 	}
 
 	testSimWithEnable(t, ctx, conn, prompt, "enable", "testsx")
+}
+
+
+func TestSSHSimWithEnable2(t *testing.T) {
+	options := &sshd.Options{}
+	options.AddUserPassword("abc", "123")
+
+	options.WithEnable("ABC>>", "enable", "password:", "testsx", "", "abc##", sshd.Echo)
+	//options.WithNoEnable("ABC>", sshd.Echo)
+
+	listener, err := sshd.StartServer(":", options)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	defer listener.Close()
+
+	port := listener.Port()
+	ctx := context.Background()
+
+	conn, err := ConnectSSH(net.JoinHostPort("127.0.0.1", port), "abc", "123", "", nil, nil)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	defer conn.Close()
+
+	conn.UseCRLF()
+	conn.SetReadDeadline(1 * time.Second)
+
+	prompt, err := ReadPrompt(ctx, conn, [][]byte{[]byte(">")}, answerNo)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+
+	t.Log(string(prompt))
+	if string(prompt) != "ABC>>" {
+		t.Error("want ABC>> got", string(prompt))
+	}
+
+	// output, err := Exec(ctx, conn, prompt, []byte("echo ABC>abcd"))
+	// if err != nil {
+	// 	t.Error(err)
+	// } else if !strings.Contains(string(output), "print ABC>abcd") {
+	// 	t.Errorf("want 'print ABC>abcd' got %s", output)
+	// }
+
+	prompt, err = WithEnable(ctx, conn, []byte("enable"), nil, []byte("testsx"), nil)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if string(prompt) != "abc##" {
+		t.Errorf("want 'abc##' got %s", prompt)
+		return
+	}
+
+	output, err := Exec(ctx, conn, prompt, []byte("echo abc#abcd"))
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if !strings.Contains(string(output), "print abc#abcd") {
+		t.Errorf("want 'print abc#abcd' got %s", output)
+	}
 }
 
 func TestSSHSimWithEnableNonePassword(t *testing.T) {

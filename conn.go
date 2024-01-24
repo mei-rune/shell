@@ -24,7 +24,7 @@ type Conn interface {
 	Send([]byte) error
 	Sendln([]byte) error
 	SendPasswordWriter
-	DrainOff() (int, error)
+	DrainOff(time.Duration) (int, error)
 	Expect([][]byte) (int, []byte, error)
 }
 

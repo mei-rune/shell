@@ -498,7 +498,7 @@ var Parsers = map[string]func(*Script, int, string, []byte) error{
 				LineNumber: line,
 				LineText:   rawText,
 				Run: func(ctx context.Context, script *Script, conn *Shell) error {
-					_, err := conn.Conn.DrainOff()
+					_, err := conn.Conn.DrainOff(0)
 					return err
 				}})
 		return nil

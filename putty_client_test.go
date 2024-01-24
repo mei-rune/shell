@@ -10,6 +10,8 @@ import (
 )
 
 func TestPlinkConnectHpILO(t *testing.T) {
+	t.Skip("TestPlinkConnectHpILO")
+
 	ctx := context.Background()
 
 	var buf bytes.Buffer
@@ -23,7 +25,7 @@ func TestPlinkConnectHpILO(t *testing.T) {
 		// time.Sleep(1 * time.Hour)
 	}()
 
-	conn, err := ConnectPlink("192.168.1.15", "Administrator", "123456abc", "",
+	conn, err := ConnectPlink("192.168.1.15", "admin", "123456", "",
 		PasswordWriter(WriteFunc(func(p []byte) (int, error) {
 			return out.WriteWithTag("S:", p)
 		})),

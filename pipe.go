@@ -9,7 +9,7 @@ import (
 )
 
 type drainto interface {
-	DrainTo(w io.Writer) (int, error)
+	DrainTo(timeout time.Duration, w io.Writer) (int, error)
 }
 
 var _ drainto = &pipe{}
@@ -188,7 +188,7 @@ func (c *pipe) Read(p []byte) (int, error) {
 	}
 }
 
-func (c *pipe) DrainTo(w io.Writer) (int, error) {
+func (c *pipe) DrainTo(timeout time.Duration,  w io.Writer) (int, error) {
 	var a [1]byte
 	offset := 0
 	for {
@@ -204,7 +204,24 @@ func (c *pipe) DrainTo(w io.Writer) (int, error) {
 
 			// fmt.Println("pipe read:", string(b))
 		default:
-			return offset, nil
+			if timeout > 0 {
+				timer := time.NewTimer(timeout)
+				select {
+				case b, ok := <-c.c:
+					timer.Stop()
+					if !ok {
+						return offset, c.getError(io.EOF)
+					}
+					offset++
+					a[0] = b
+
+					w.Write(a[:])
+				case <- timer.C:
+					return offset, nil
+				}
+			} else {
+				return offset, nil
+			}
 		}
 	}
 }

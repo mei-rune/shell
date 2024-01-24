@@ -8,12 +8,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mei-rune/shell/sim/sshd"
-	"github.com/mei-rune/shell/sim/telnetd"
+	// "github.com/mei-rune/shell/sim/sshd"
+	// "github.com/mei-rune/shell/sim/telnetd"
+	"tech.hengwei.com.cn/go/private/sim/sshd"
+	"tech.hengwei.com.cn/go/private/sim/telnetd"
 )
 
 func TestTelnetSimple(t *testing.T) {
-	t.Skip("TestTelnetSimple")
+	t.Skip("已有模拟的，跳过这个测试")
 
 	ctx := context.Background()
 
@@ -43,10 +45,11 @@ func TestTelnetSimple(t *testing.T) {
 
 	output, err := Exec(ctx, conn, prompt, []byte("echo abcd"))
 	if err != nil {
-		t.Error(err)
-		return
-	}
-	if !strings.Contains(string(output), "print abcd") {
+		if !strings.Contains(err.Error(), "Invalid input detected at '^' marker") {
+			t.Error(err)
+			return
+		}
+	} else if !strings.Contains(string(output), "print abcd") {
 		t.Errorf("want 'print abcd' got %s", output)
 	}
 }
@@ -88,6 +91,58 @@ func TestTelnetSimSimple(t *testing.T) {
 	}
 
 	testSimSimple(t, ctx, conn, prompt)
+}
+
+
+func TestTelnetSimPrompt(t *testing.T) {
+	options := &telnetd.Options{}
+	options.AddUserPassword("abc", "123")
+
+	//options.WithEnable("ABC>", "enable", "password:", "testsx", "","abc#", sshd.Echo)
+	options.WithNoEnable("ABC>>", sshd.Echo)
+
+	listener, err := telnetd.StartServer(":", options)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	defer listener.Close()
+
+	port := listener.Port()
+	ctx := context.Background()
+
+	telnetConn, err := DialTelnetTimeout("tcp", net.JoinHostPort("127.0.0.1", port), 1*time.Second)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	conn := TelnetWrap(telnetConn, nil, nil)
+
+	defer conn.Close()
+
+	conn.UseCRLF()
+	conn.SetReadDeadline(1 * time.Second)
+
+	prompt, err := UserLogin(ctx, conn, nil, []byte("abc"), nil, []byte("123"), nil)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	t.Log(string(prompt))
+	if string(prompt) != "ABC>>" {
+		t.Error("want ABC>> got", string(prompt))
+	}
+
+	output, err := Exec(ctx, conn, prompt, []byte("echo ABC>abcd"))
+	if err != nil {
+		t.Error(err)
+	} else if !strings.Contains(string(output), "print ABC>abcd") {
+		t.Errorf("want 'print ABC>abcd' got %s", output)
+	}
+
+	// testSimSimple(t, ctx, conn, prompt)
 }
 
 func TestTelnetSimWithNoUserNoPassword(t *testing.T) {

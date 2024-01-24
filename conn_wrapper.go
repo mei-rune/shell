@@ -261,9 +261,9 @@ func (c *ConnWrapper) ReadByte() (byte, error) {
 	return bs[0], nil
 }
 
-func (c *ConnWrapper) DrainOff() (int, error) {
+func (c *ConnWrapper) DrainOff(timeout time.Duration) (int, error) {
 	if c.drainto != nil {
-		return c.drainto.DrainTo(c.teeReader())
+		return c.drainto.DrainTo(timeout, c.teeReader())
 	}
 	return 0, nil
 }
