@@ -464,21 +464,23 @@ func GetPrompt(bs []byte, prompts [][]byte) []byte {
 			return unicode.IsSpace(r)
 		})
 		if len(fullPrompt) > 0 {
-			break
+				for _, prompt := range prompts {
+					if bytes.HasSuffix(fullPrompt, prompt) {
+						if 2 <= len(fullPrompt) && ']' == fullPrompt[len(fullPrompt)-2] {
+							idx := bytes.LastIndex(fullPrompt, []byte("["))
+							if idx > 0 {
+								fullPrompt = fullPrompt[idx:]
+							}
+						}
+						return fullPrompt
+					}
+				}
 		}
 	}
 
-	for _, prompt := range prompts {
-		if bytes.HasSuffix(fullPrompt, prompt) {
-			if 2 <= len(fullPrompt) && ']' == fullPrompt[len(fullPrompt)-2] {
-				idx := bytes.LastIndex(fullPrompt, []byte("["))
-				if idx > 0 {
-					fullPrompt = fullPrompt[idx:]
-				}
-			}
-			return fullPrompt
-		}
-	}
+	// fmt.Println("===", string(fullPrompt))
+
+
 
 	return nil
 }
