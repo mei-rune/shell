@@ -218,9 +218,10 @@ func (c *ConnWrapper) SendPassword(s []byte) error {
 		lnBytes = crlf
 	}
 	_, err = c.Write(lnBytes)
-	if err == nil {
-		teeWriter.Write(lnBytes)
-	}
+	// c.Write() 中有调用 teeWriter.Write
+	// if err == nil {
+	// 	teeWriter.Write(lnBytes)
+	// }
 	return err
 }
 

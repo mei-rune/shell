@@ -13,53 +13,78 @@ func TestParseCmdOutput(t *testing.T) {
 		result         string
 		prompt         string
 		characteristic string
-	}{{data: `--- JUNOS 11.4R7.5 built 2013-03-01 11:57:40 UTC
-nEwtaaaaaamaer@1251-J1-M10I-P2> show confi
-nEwtaaaaaamaer@1251-J1-M10I-P2> ...          uration 
-nEwtaaaaaamaer@1251-J1-M10I-P2> ...         display
-nEwtaaaaaamaer@1251-J1-M10I-P2> ...y       s
-nEwtaaaaaamaer@1251-J1-M10I-P2> ...n | disp...
-nEwtaaaaaamaer@1251-J1-M10I-P2> ...display             
-nEwtaaaaaamaer@1251-J1-M10I-P2> ...uration ...
-nEwtaaaaaamaer@1251-J1-M10I-P2> ...ion | di               
-nEwtaaaaaamaer@1251-J1-M10I-P2> ...configur...
-nEwtaaaaaamaer@1251-J1-M10I-P2> ...iguratio               
-nEwtaaaaaamaer@1251-J1-M10I-P2> show config...                                    
+	}{
 
-nEwtaaaaaamaer@1251-J1-M10I-P2> 
+		{data: `????Remote Management Console
+login: testaer
+password: 
+FW-HA:1251-J1-ISG1000-1(M)-> get conf
+Total Config size 35092:
+unset key protection enable
+set clock timezone 8
+set clock dst recurring start-weekday 2 0 3 02:00 end-weekday 1 0 11 02:00
+set vrouter trust-vr sharable
+set vrouter "trust-vr"
+exit
+FW-HA:1251-J1-ISG1000-1(M)->          `,
+			result: `Total Config size 35092:
+unset key protection enable
+set clock timezone 8
+set clock dst recurring start-weekday 2 0 3 02:00 end-weekday 1 0 11 02:00
+set vrouter trust-vr sharable
+set vrouter "trust-vr"
+exit
+`,
+			prompt:         ">",
+			characteristic: "Total Config"},
 
-nEwtaaaaaamaer@1251-J1-M10I-P2> show confi
-nEwtaaaaaamaer@1251-J1-M10I-P2> ...          uration 
-nEwtaaaaaamaer@1251-J1-M10I-P2> ...         display
-nEwtaaaaaamaer@1251-J1-M10I-P2> ...y       set |
-nEwtaaaaaamaer@1251-J1-M10I-P2> ...         tests.MO
-nEwtaaaaaamaer@1251-J1-M10I-P2> ...t | tests.MO   
+{data: `--- JUNOS 11.4R7.5 built 2013-03-01 11:57:40 UTC
+testaer@1251-J1-M10I-P2> show confi
+testaer@1251-J1-M10I-P2> ...          uration 
+testaer@1251-J1-M10I-P2> ...         display
+testaer@1251-J1-M10I-P2> ...y       s
+testaer@1251-J1-M10I-P2> ...n | disp...
+testaer@1251-J1-M10I-P2> ...display             
+testaer@1251-J1-M10I-P2> ...uration ...
+testaer@1251-J1-M10I-P2> ...ion | di               
+testaer@1251-J1-M10I-P2> ...configur...
+testaer@1251-J1-M10I-P2> ...iguratio               
+testaer@1251-J1-M10I-P2> show config...                                    
+
+testaer@1251-J1-M10I-P2> 
+
+testaer@1251-J1-M10I-P2> show confi
+testaer@1251-J1-M10I-P2> ...          uration 
+testaer@1251-J1-M10I-P2> ...         display
+testaer@1251-J1-M10I-P2> ...y       set |
+testaer@1251-J1-M10I-P2> ...         tests.MO
+testaer@1251-J1-M10I-P2> ...t | tests.MO   
                                ^
 syntax error, expecting <command>.
 
-nEwtaaaaaamaer@1251-J1-M10I-P2> ...t | tests.MO   
-nEwtaaaaaamaer@1251-J1-M10I-P2> ...display ...
-nEwtaaaaaamaer@1251-J1-M10I-P2> ...lay set ...
-nEwtaaaaaamaer@1251-J1-M10I-P2> ...set |tests.MO    tests.MO   
-nEwtaaaaaamaer@1251-J1-M10I-P2> ...| displa...
-nEwtaaaaaamaer@1251-J1-M10I-P2> ...splay se...
+testaer@1251-J1-M10I-P2> ...t | tests.MO   
+testaer@1251-J1-M10I-P2> ...display ...
+testaer@1251-J1-M10I-P2> ...lay set ...
+testaer@1251-J1-M10I-P2> ...set |tests.MO    tests.MO   
+testaer@1251-J1-M10I-P2> ...| displa...
+testaer@1251-J1-M10I-P2> ...splay se...
 error: syntax error, expecting <command>: semo
 
-nEwtaaaaaamaer@1251-J1-M10I-P2> show confi
-nEwtaaaaaamaer@1251-J1-M10I-P2> ...          uration 
-nEwtaaaaaamaer@1251-J1-M10I-P2> ...         display
-nEwtaaaaaamaer@1251-J1-M10I-P2> ...y       set |
-nEwtaaaaaamaer@1251-J1-M10I-P2> ...         tests.MO
-nEwtaaaaaamaer@1251-J1-M10I-P2> ...m   
-nEwtaaaaaamaer@1251-J1-M10I-P2> ...lay set ...
-nEwtaaaaaamaer@1251-J1-M10I-P2> ...n          o-more
-nEwtaaaaaamaer@1251-J1-M10I-P2> ...         
+testaer@1251-J1-M10I-P2> show confi
+testaer@1251-J1-M10I-P2> ...          uration 
+testaer@1251-J1-M10I-P2> ...         display
+testaer@1251-J1-M10I-P2> ...y       set |
+testaer@1251-J1-M10I-P2> ...         tests.MO
+testaer@1251-J1-M10I-P2> ...m   
+testaer@1251-J1-M10I-P2> ...lay set ...
+testaer@1251-J1-M10I-P2> ...n          o-more
+testaer@1251-J1-M10I-P2> ...         
 set version 11.4R7.5
 set system host-name 1251-J1-M10I-P2
 set system time-zone Asia/Shanghai
 set firewall filter SH-COS-ACL term network-control-queue0-5percent then accept
 
-nEwtaaaaaamaer@1251-J1-M10I-P2> `,
+testaer@1251-J1-M10I-P2> `,
 		result: `set version 11.4R7.5
 set system host-name 1251-J1-M10I-P2
 set system time-zone Asia/Shanghai
@@ -68,25 +93,25 @@ set firewall filter SH-COS-ACL term network-control-queue0-5percent then accept
 `,
 		prompt:         ">",
 		characteristic: "set system"},
-		{data: `nEwtaaaaaamaer@1251-J1-M10I-P2> show confi
-nEwtaaaaaamaer@1251-J1-M10I-P2> ...          uration 
-nEwtaaaaaamaer@1251-J1-M10I-P2> ...         display
-nEwtaaaaaamaer@1251-J1-M10I-P2> ...y       set |
-nEwtaaaaaamaer@1251-J1-M10I-P2> ...         tests.MO
-nEwtaaaaaamaer@1251-J1-M10I-P2> ...m   
-nEwtaaaaaamaer@1251-J1-M10I-P2> ...lay set ...
-nEwtaaaaaamaer@1251-J1-M10I-P2> ...n          o-more
-nEwtaaaaaamaer@1251-J1-M10I-P2> ...         
+		{data: `testaer@1251-J1-M10I-P2> show confi
+testaer@1251-J1-M10I-P2> ...          uration 
+testaer@1251-J1-M10I-P2> ...         display
+testaer@1251-J1-M10I-P2> ...y       set |
+testaer@1251-J1-M10I-P2> ...         tests.MO
+testaer@1251-J1-M10I-P2> ...m   
+testaer@1251-J1-M10I-P2> ...lay set ...
+testaer@1251-J1-M10I-P2> ...n          o-more
+testaer@1251-J1-M10I-P2> ...         
 set version 11.4R7.5
 set system host-name 1251-J1-M10I-P2
 set system time-zone Asia/Shanghai
-nEwtaaaaaamaer@1251-J1-M10I-P2>
+testaer@1251-J1-M10I-P2>
 set version 11.4R7.5
 set system host-name 1251-J1-M10I-P2
 set system time-zone Asia/Shanghai
 set firewall filter SH-COS-ACL term network-control-queue0-5percent then accept
 
-nEwtaaaaaamaer@1251-J1-M10I-P2> `,
+testaer@1251-J1-M10I-P2> `,
 			result: `set version 11.4R7.5
 set system host-name 1251-J1-M10I-P2
 set system time-zone Asia/Shanghai
@@ -99,7 +124,7 @@ set firewall filter SH-COS-ACL term network-control-queue0-5percent then accept
 
 User Access Verification
 
-Username: nEwtaaaaaamaer
+Username: testaer
 Password: 
 11521-C-2950-BankOUT>en
 Password: 
@@ -108,7 +133,7 @@ Building configuration...
 
 Current configuration : 5257 bytes
 ntp source Vlan100
-ntp server 10.11.10.99
+ntp server 192.168.10.99
 end
 
 11521-C-2950-BankOUT#`,
@@ -116,34 +141,12 @@ end
 
 Current configuration : 5257 bytes
 ntp source Vlan100
-ntp server 10.151.100.99
+ntp server 192.168.10.99
 end
 
 `,
 			prompt:         "#",
 			characteristic: "Building configuration"},
-		{data: `????Remote Management Console
-login: nEwtaaaaaamaer
-password: 
-FW-HA:1251-J1-ISG1000-1(M)-> get conf
-Total Config size 35092:
-unset key protection enable
-set clock timezone 8
-set clock dst recurring start-weekday 2 0 3 02:00 end-weekday 1 0 11 02:00
-set vrouter trust-vr sharable
-set vrouter "trust-vr"
-exit
-FW-HA:1251-J1-ISG1000-1-1(M)->          `,
-			result: `Total Config size 35092:
-unset key protection enable
-set clock timezone 8
-set clock dst recurring start-weekday 2 0 3 02:00 end-weekday 1 0 11 02:00
-set vrouter trust-vr sharable
-set vrouter "trust-vr"
-exit
-`,
-			prompt:         ">",
-			characteristic: "Total Config"},
 		{data: `show co
 NM-UsrA@1520-B-2510-Bank-1> ...on     fi
 NM-UsrA@1520-B-2510-Bank-1> ...ig    ur
@@ -334,6 +337,7 @@ set firewall filter 49-BJ-CW-OUTBOUND term 1 then accept
 			t.Error("[", idx, "]", "result is diff.")
 			t.Log("'" + string(res) + "'")
 			t.Log("'" + test.result + "'")
+			return
 		}
 		t.Log("[", idx, "] end")
 	}

@@ -164,3 +164,46 @@ func testTelnetCisco(t *testing.T, ctx context.Context, params *TelnetParam) {
 	t.Log(result.Incomming)
 	t.Log(buf.String())
 }
+
+func TestCiscoFail(t *testing.T) {
+	ctx := context.Background()
+
+	params := &TelnetParam{
+		// Timeout: 30 * time.Second,
+		Address: "192.168.1.173",
+		Port:    "23",
+		// UserQuest: "",
+		Username: "admin",
+		// PasswordQuest: "",
+		Password:            "admin",
+		Prompt:              "",
+		EnableCommand:       "en",
+		EnablePasswordQuest: "",
+		EnablePassword:      "admin",
+		EnablePrompt:        "",
+		UseCRLF:             true,
+	}
+
+	var buf bytes.Buffer
+	c, _, err := DailTelnet(ctx, params, ServerWriter(&buf), ClientWriter(&buf), Question(AbcQuestion.Prompts(), AbcQuestion.Do()))
+
+	if err == nil {
+		defer c.Close()
+
+		t.Error("want error go ok")
+
+		s := shell.ToHexStringIfNeed(buf.Bytes())
+		t.Error(s)
+		fmt.Println(s)
+		return
+	}
+
+	if !strings.Contains(err.Error(), "invalid enable password") {
+		t.Log(err)
+		// t.Error(buf.Len(), buf.String())
+
+		s := shell.ToHexStringIfNeed(buf.Bytes())
+		t.Error(s)
+		fmt.Println(s)
+	}
+}

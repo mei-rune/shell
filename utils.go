@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"io"
 	"unicode"
-	"fmt"
 
 	"github.com/runner-mei/errors"
 )
@@ -330,9 +329,9 @@ func ParseCmdOutput(bs []byte, cmd, prompt, characteristic []byte) ([]byte, erro
 		return nil, errors.New("console output is empty")
 	}
 
-	for idx := range lineArray {
-		fmt.Printf("%q\r\n", ToHexStringIfNeed(lineArray[idx]))
-	}
+	// for idx := range lineArray {
+	// 	fmt.Printf("%q\r\n", ToHexStringIfNeed(lineArray[idx]))
+	// }
 
 	fullPrompt := bytes.TrimRightFunc(lineArray[len(lineArray)-1], unicode.IsSpace)
 	if len(prompt) > 0 && !bytes.Contains(fullPrompt, prompt) {

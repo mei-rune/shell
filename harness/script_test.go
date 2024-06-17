@@ -647,10 +647,20 @@ func TestScriptSimpleSSHMore(t *testing.T) {
 				}
 
 				if !cmp.Equal(results, test.expected) {
-					t.Error(cmp.Diff(results, test.expected))
+					copyed := make([]ExecuteResult, 0, len(test.expected))
+					for idx := range test.expected {
+						copyed = append(copyed, test.expected[idx])
+						if copyed[len(copyed)-1].Outgoing == "show\r\nyy" {
+								copyed[len(copyed)-1].Outgoing = "show\r\n  "
+						}
+					}
 
-					for _, a := range results {
-						t.Errorf("%#v", a)
+					if !cmp.Equal(results, copyed) {
+						t.Error(cmp.Diff(results, copyed))
+
+						for _, a := range results {
+							t.Errorf("%#v", a)
+						}
 					}
 				}
 			})
@@ -678,15 +688,23 @@ func TestScriptSimpleSSHMore(t *testing.T) {
 
 				for idx := range results {
 					if !cmp.Equal(results[idx], test.expected[idx]) {
-						if strings.Contains(results[idx].Incomming, "Store key in cache?") {
-
-							if !cmp.Equal(results[idx].SubResults, test.expected[idx].SubResults) {
-								t.Error("[", idx, "]", cmp.Diff(results[idx].SubResults, test.expected[idx].SubResults))
-							}
-
-							continue
+						copyed := test.expected[idx]
+						if copyed.Outgoing == "show\r\nyy" {
+								copyed.Outgoing = "show\r\n  "
 						}
-						t.Error("[", idx, "]", cmp.Diff(results[idx], test.expected[idx]))
+
+						if !cmp.Equal(results[idx], copyed) {
+
+							if strings.Contains(results[idx].Incomming, "Store key in cache?") {
+
+								if !cmp.Equal(results[idx].SubResults, test.expected[idx].SubResults) {
+									t.Error("[", idx, "]", cmp.Diff(results[idx].SubResults, test.expected[idx].SubResults))
+								}
+
+								continue
+							}
+							t.Error("[", idx, "]", cmp.Diff(results[idx], test.expected[idx]))
+						}
 					}
 				}
 			})

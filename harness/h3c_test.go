@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	// "github.com/mei-rune/shell/sim/telnetd"
-	"tech.hengwei.com.cn/go/private/sim/telnetd"
 	"tech.hengwei.com.cn/go/private/sim/sshd"
+	"tech.hengwei.com.cn/go/private/sim/telnetd"
 
 	"github.com/mei-rune/shell"
 )
@@ -37,8 +37,6 @@ return
 `,
 }
 
-
-
 func TestH3CForSSH(t *testing.T) {
 
 	// go http.ListenAndServe(":12445", nil)
@@ -61,10 +59,10 @@ func TestH3CForSSH(t *testing.T) {
 	options.AddUserPassword("admin1", "admin2")
 
 	options.WithNoEnable("ABC>", sshd.OS(telnetd.Commands{
-			"display": sshd.WithCommands(telnetd.Commands{
-				"current-configuration": sshd.WithMore(h3cConfigurations, []byte(" ---- More ----"), moreAfter),
-			}),
-		}))
+		"display": sshd.WithCommands(telnetd.Commands{
+			"current-configuration": sshd.WithMore(h3cConfigurations, []byte(" ---- More ----"), moreAfter),
+		}),
+	}))
 
 	listener, err := sshd.StartServer(":", options)
 	if err != nil {
@@ -83,9 +81,9 @@ func TestH3CForSSH(t *testing.T) {
 		// UserQuest: "",
 		Username: "admin1",
 		// PasswordQuest: "",
-		Password:            "admin2",
-		Prompt:              "",
-		UseCRLF:             true,
+		Password: "admin2",
+		Prompt:   "",
+		UseCRLF:  true,
 	}
 
 	testSSHH3C(t, ctx, params, false)
@@ -249,7 +247,6 @@ func testTelnetH3C(t *testing.T, ctx context.Context, params *TelnetParam, hasVi
 	//fmt.Println(s)
 }
 
-
 func testSSHH3C(t *testing.T, ctx context.Context, params *SSHParam, hasView bool) {
 	var buf bytes.Buffer
 	c, prompt, err := DailSSH(ctx, params, ClientWriter(&buf), ServerWriter(&buf), Question(AbcQuestion.Prompts(), AbcQuestion.Do()))
@@ -282,7 +279,7 @@ func testSSHH3C(t *testing.T, ctx context.Context, params *SSHParam, hasView boo
 	}
 	conn.Close()
 
-	if !strings.Contains(result.Incomming, "super password level 3 cipher $sfsdf==") {
+	if !strings.Contains(result.Incomming, "super password level 3 cipher $sdfsdf==") {
 		t.Errorf("want 'super password level 3 cipher' got %s", result.Incomming)
 	}
 	t.Log(result.Incomming)
@@ -291,7 +288,6 @@ func testSSHH3C(t *testing.T, ctx context.Context, params *SSHParam, hasView boo
 	t.Log(s)
 	//fmt.Println(s)
 }
-
 
 func TestH3CWithSystemView(t *testing.T) {
 

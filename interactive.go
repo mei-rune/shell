@@ -550,7 +550,10 @@ func WithEnable(ctx context.Context, conn Conn, enableCmd []byte, passwordPrompt
 	if !IsNonePassword(password) {
 
 		var isPrompt bool
-		err := Expect(ctx, conn,
+		var failPassword bool
+
+		copyed := make([]Matcher, 0, 5)
+		copyed = append(copyed,
 			Match(enablePrompts, func(c Conn, bs []byte, nidx int) (bool, error) {
 				isPrompt = true
 				return false, nil
@@ -563,27 +566,42 @@ func WithEnable(ctx context.Context, conn Conn, enableCmd []byte, passwordPrompt
 					return false, errors.Wrap(e, "send enable password failed")
 				}
 				return false, nil
-			}))
-		if err != nil {
-			return nil, err
+			}),
+			Match(defaultErrorPrompts, func(c Conn, bs []byte, nidx int) (bool, error) {
+				failPassword = true
+				return false, nil
+			}),
+		)
+		for i := 0; ; i++ {
+			if i >= 10 {
+				return nil, errors.New("enter enable mode fail:\r\n" + ToHexStringIfNeed(buf.Bytes()))
+			}
+			err := Expect(ctx, conn, copyed...)
+			if err != nil {
+				return nil, err
+			}
+			if failPassword {
+				break
+			}
+			if isPrompt {
+				break
+			}
 		}
-
-		if isPrompt {
-			if _, err := conn.DrainOff(5 * time.Second); err != nil {
-				return nil, errors.New("read prompt failed, drain off, " + err.Error())
-			}
-
-			output := buf.Bytes()
-			if len(output) == 0 {
-				return nil, errors.New("read prompt failed, received is empty")
-			}
-
-			prompt := GetPrompt(output, enablePrompts)
-			if len(prompt) == 0 {
-				return nil, errors.New("read prompt '" + string(bytes.Join(enablePrompts, []byte(","))) + "' failed: \r\n" + ToHexStringIfNeed(output))
-			}
-			return prompt, nil
+		if failPassword {
+			return nil, errors.New("invalid enable password")
 		}
+		if _, err := conn.DrainOff(5 * time.Second); err != nil {
+			return nil, errors.New("read prompt failed, drain off, " + err.Error())
+		}
+		output := buf.Bytes()
+		if len(output) == 0 {
+			return nil, errors.New("read prompt failed, received is empty")
+		}
+		prompt := GetPrompt(output, enablePrompts)
+		if len(prompt) == 0 {
+			return nil, errors.New("read prompt '" + string(bytes.Join(enablePrompts, []byte(","))) + "' failed: \r\n" + ToHexStringIfNeed(output))
+		}
+		return prompt, nil
 	}
 	return readPrompt(ctx, &buf, conn, enablePrompts)
 }
