@@ -165,7 +165,8 @@ func testTelnetCisco(t *testing.T, ctx context.Context, params *TelnetParam) {
 	t.Log(buf.String())
 }
 
-func TestCiscoFail(t *testing.T) {
+func TestCiscoFail1(t *testing.T) {
+	t.Skip("这个是实际设备，跳过, 开启动请修改正确的用户名和密码")
 	ctx := context.Background()
 
 	params := &TelnetParam{
@@ -179,7 +180,81 @@ func TestCiscoFail(t *testing.T) {
 		Prompt:              "",
 		EnableCommand:       "en",
 		EnablePasswordQuest: "",
-		EnablePassword:      "admin",
+		EnablePassword:      "123456",
+		EnablePrompt:        "",
+		UseCRLF:             true,
+	}
+
+	var buf bytes.Buffer
+	c, _, err := DailTelnet(ctx, params, ServerWriter(&buf), ClientWriter(&buf), Question(AbcQuestion.Prompts(), AbcQuestion.Do()))
+
+	if err == nil {
+		defer c.Close()
+
+		t.Error("want error go ok")
+
+		s := shell.ToHexStringIfNeed(buf.Bytes())
+		t.Error(s)
+		fmt.Println(s)
+		return
+	}
+
+	if !strings.Contains(err.Error(), "invalid enable password") {
+		t.Log(err)
+		// t.Error(buf.Len(), buf.String())
+
+		s := shell.ToHexStringIfNeed(buf.Bytes())
+		t.Error(s)
+		fmt.Println(s)
+	}
+}
+
+
+
+func TestCiscoFail2(t *testing.T) {
+
+	// go http.ListenAndServe(":12445", nil)
+
+	moreAfter := append(append(bytes.Repeat([]byte{byte('\b')}, 9), []byte("        ")...), bytes.Repeat([]byte{byte('\b')}, 9)...)
+
+	welcome := []byte{0xFF, 0xFB, 0x01, 0xFF, 0xFB, 0x03, 0xFF, 0xFD, 0x18, 0xFF, 0xFD, 0x1F, 0x0D, 0x0A, 0x0D, 0x0A}
+	welcome = append(welcome, []byte("*****************\r\n   <myuser> <mypassword> \r\nUser Access Verification\r\n\r\n")...)
+
+	options := &telnetd.Options{}
+	options.SetWelcome(welcome)
+	options.SetUserQuest(append([]byte("Username: "), 0xFF, 0xFA, 0x18, 0x01, 0xFF, 0xF0), []byte("Password:"))
+	options.SetUserPassword("admin1", "admin2")
+
+	//options.WithEnable("ABC>", "enable", "password:", "testsx", "", "abc#", telnetd.Echo)
+	options.WithPrompt([]byte("Switch>"),
+		telnetd.WithEnable("enable", "Password: ", "admin", "", "Switch#", telnetd.OS(telnetd.Commands{
+			"show": telnetd.WithCommands(telnetd.Commands{
+				"configuration": telnetd.WithMore(ciscoConfigurations, []byte(" --More--"), moreAfter),
+			}),
+		})))
+
+	listener, err := telnetd.StartServer(":", options)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	defer listener.Close()
+
+	port := listener.Port()
+	ctx := context.Background()
+
+	params := &TelnetParam{
+		// Timeout: 30 * time.Second,
+		Address: "127.0.0.1",
+		Port:    port,
+		// UserQuest: "",
+		Username: "admin1",
+		// PasswordQuest: "",
+		Password:            "admin2",
+		Prompt:              "",
+		EnableCommand:       "",
+		EnablePasswordQuest: "",
+		EnablePassword:      "admintset",
 		EnablePrompt:        "",
 		UseCRLF:             true,
 	}
