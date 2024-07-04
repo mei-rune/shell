@@ -95,6 +95,46 @@ func TestSSHSimWithEnablePassword(t *testing.T) {
 	testSSH(t, ctx, params)
 }
 
+func TestSSHSimWithPrompt(t *testing.T) {
+	options := &sshd.Options{}
+	options.AddUserPassword("abc", "123")
+
+	options.WithEnable("ABC>", "enable", "password:", "testsx", "", ">> standalone ADC - Main@", sshd.Echo)
+	//options.WithNoEnable("ABC>", sshd.Echo)
+
+	listener, err := sshd.StartServer(":", options)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	defer listener.Close()
+
+	port := listener.Port()
+	ctx := context.Background()
+
+	params := &SSHParam{
+		// Timeout: 30 * time.Second,
+		Address: "127.0.0.1",
+		Port:    port,
+		// UserQuest: "",
+		Username: "abc",
+		// PasswordQuest: "",
+		Password:            "123",
+		PrivateKey:          "",
+		Prompt:              "",
+		EnableCommand:       "enable",
+		EnablePasswordQuest: "",
+		EnablePassword:      "testsx",
+		EnablePrompt:        "",
+		UseExternalSSH:      false,
+		UseCRLF:             true,
+	}
+	testSSH(t, ctx, params)
+
+	params.UseExternalSSH = true
+	testSSH(t, ctx, params)
+}
+
 func TestSSHSimWithEnableNonePassword(t *testing.T) {
 	options := &sshd.Options{}
 	options.AddUserPassword("abc", "123")

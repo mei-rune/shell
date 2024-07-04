@@ -57,7 +57,7 @@ var (
 		[]byte("Login Name:"),
 	}
 	defaultPasswordPrompts = [][]byte{[]byte("Password:"), []byte("password:")}
-	defaultPrompts         = [][]byte{[]byte(">"), []byte("$"), []byte("#")}
+	defaultPrompts         = [][]byte{[]byte(">"), []byte("$"), []byte("#"), []byte("@")}
 	defaultErrorPrompts    = [][]byte{
 		[]byte("Bad secrets"),
 		[]byte("Login invalid"),
@@ -125,17 +125,21 @@ var (
 	ChangeNow1Question     = Match("Change now? [Y/N]:", SayNoCRLF)
 	ChangeNow2Question     = Match("Change now?[Y/N]:", SayNoCRLF)
 	ChangePasswordQuestion = Match("change the password?", SayNoCRLF)
-	StoreKeyInCache        = Match("Store key in cache? (y/n)", SayYes)
+	StoreKeyInCache1        = Match("Store key in cache? (y/n)", SayYes)
+	StoreKeyInCache2        = Match("Store key in cache? (y/n,", SayYes)
 	ContinueWithConnection = Match("Continue with connection? (y/n)", SayYes)
-	UpdateCachedKey        = Match("Update cached key? (y/n, Return cancels connection)", SayYes)
+	UpdateCachedKey1        = Match("Update cached key? (y/n),", SayYes)
+	UpdateCachedKey2        = Match("Update cached key? (y/n,", SayYes)
 	More                   = Match(MorePrompts, SaySpace)
 
 	DefaultMatchers = []Matcher{
 		ChangeNow1Question,
 		ChangeNow2Question,
 		ChangePasswordQuestion,
-		StoreKeyInCache,
-		UpdateCachedKey,
+		StoreKeyInCache1,
+		StoreKeyInCache2,
+		UpdateCachedKey1,
+		UpdateCachedKey2,
 		ContinueWithConnection,
 		More,
 	}
@@ -319,6 +323,7 @@ func UserLogin(ctx context.Context, conn Conn, userPrompts [][]byte, username []
 		if e := conn.Sendln(username); e != nil {
 			return false, errors.Wrap(e, "send username failed")
 		}
+
 		status = 1
 		return false, nil
 	})
@@ -334,7 +339,9 @@ func UserLogin(ctx context.Context, conn Conn, userPrompts [][]byte, username []
 		return false, nil
 	})
 	copyed[2] = Match(prompts, func(c Conn, bs []byte, nidx int) (bool, error) {
-		status = 3
+		if  bs[len(bs)-1] != '@' || status == 2 {
+			status = 3
+		}
 		return false, nil
 	})
 
