@@ -44,7 +44,7 @@ type SSHParam struct {
 }
 
 func (param *SSHParam) Host() string {
-	if param.Port == "" {
+	if param.Port == "" || param.Port == "0" {
 		return JoinHostPort(param.Address, "22")
 	}
 	return JoinHostPort(param.Address, param.Port)

@@ -29,7 +29,7 @@ type TelnetParam struct {
 }
 
 func (param *TelnetParam) Host() string {
-	if param.Port == "" {
+	if param.Port == "" || param.Port == "0" {
 		return JoinHostPort(param.Address, "23")
 	}
 	return JoinHostPort(param.Address, param.Port)

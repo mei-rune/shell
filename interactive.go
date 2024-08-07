@@ -60,6 +60,7 @@ var (
 	defaultPrompts         = [][]byte{[]byte(">"), []byte("$"), []byte("#"), []byte("@")}
 	defaultErrorPrompts    = [][]byte{
 		[]byte("Bad secrets"),
+		[]byte("Bad passwords"),
 		[]byte("Login invalid"),
 		[]byte("login invalid"),
 		[]byte("Access denied"),
