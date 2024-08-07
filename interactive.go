@@ -40,8 +40,10 @@ var MorePrompts = [][]byte{[]byte("- More -"),
 var (
 	h3cSuperResponse  = []byte("User privilege level is")
 	anonymousPassword = []byte("<<anonymous>>")
+	anonymousUsername = []byte("<<anonymous>>")
 	nonePassword      = []byte("<<none>>")
 	noneUsername      = []byte("<<none>>")
+	emptyUsername     = []byte("<<empty>>")
 	emptyPassword     = []byte("<<empty>>")
 	defaultEnableCmd  = []byte("enable")
 
@@ -154,7 +156,11 @@ func init() {
 }
 
 func IsNoneUsername(username []byte) bool {
-	return bytes.Equal(username, noneUsername)
+	return bytes.Equal(username, noneUsername) || bytes.Equal(username, anonymousUsername)
+}
+
+func IsEmptyUsername(username []byte) bool {
+	return bytes.Equal(username, emptyUsername)
 }
 
 func IsNonePassword(password []byte) bool {
@@ -321,6 +327,12 @@ func UserLogin(ctx context.Context, conn Conn, userPrompts [][]byte, username []
 
 	copyed := make([]Matcher, len(matchs)+5)
 	copyed[0] = Match(userPrompts, func(c Conn, bs []byte, nidx int) (bool, error) {
+		if IsNonePassword(username) {
+			return false, errors.New("username missing")
+		}
+		if IsEmptyUsername(username) {
+			password = []byte{}
+		}
 		if e := conn.Sendln(username); e != nil {
 			return false, errors.Wrap(e, "send username failed")
 		}
@@ -329,6 +341,10 @@ func UserLogin(ctx context.Context, conn Conn, userPrompts [][]byte, username []
 		return false, nil
 	})
 	copyed[1] = Match(passwordPrompts, func(c Conn, bs []byte, nidx int) (bool, error) {
+		if IsNonePassword(password) {
+			return false, errors.New("password missing")
+		}
+
 		if IsEmptyPassword(password) {
 			password = []byte{}
 		}
