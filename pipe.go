@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+const DefaultPipeBufferSize = 8 * 1024
+
 type drainto interface {
 	DrainTo(timeout time.Duration, w io.Writer) (int, error)
 }
@@ -251,6 +253,9 @@ func (c *pipe) ReadByte() (byte, error) {
 	return b, nil
 }
 
-func MakePipe(timeout time.Duration) *pipe {
-	return &pipe{c: make(chan byte, 2048)}
+func MakePipe(capacity int) *pipe {
+	if capacity <= 0 {
+		capacity = DefaultPipeBufferSize
+	}
+	return &pipe{c: make(chan byte, capacity)}
 }

@@ -92,7 +92,7 @@ func ConnectPlink(host, username, password, privateKey string, sWriter, cWriter 
 	// if privateKey != "" {
 	// 	return nil, errors.New("兼容模式不支持 证书登录")
 	// }
-	p := MakePipe(2048)
+	p := MakePipe(0)
 	address, port, err := net.SplitHostPort(host)
 
 	var cmd *exec.Cmd

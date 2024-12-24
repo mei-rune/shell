@@ -146,7 +146,7 @@ func ConnectSSH(host, user, password, privateKey string, sWriter, cWriter io.Wri
 		return nil, e
 	}
 
-	p := MakePipe(2048)
+	p := MakePipe(0)
 	if sWriter != nil {
 		session.Stdout = MultWriters(p, sWriter)
 	} else {
