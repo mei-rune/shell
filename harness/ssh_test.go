@@ -367,6 +367,57 @@ func TestSSHSimMore(t *testing.T) {
 	testSSHMore(t, ctx, params)
 }
 
+func TestSSHSimErrorMore(t *testing.T) {
+	options := &sshd.Options{}
+	options.AddUserPassword("abc", "123")
+
+	//options.WithEnable("ABC>", "enable", "password:", "testsx","", "abc#", sshd.Echo)
+	options.WithNoEnable("ABC>", sshd.OS(sshd.Commands{
+		"show": sshd.WithMoreArray([]string{
+			"abcd",
+			"-- more -- efgh",
+			"ijklmn",
+		}, []string{
+			"att",
+			"-- more --",
+			"-- more --",
+		}, nil),
+	}))
+
+	listener, err := sshd.StartServer(":", options)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	defer listener.Close()
+
+	port := listener.Port()
+
+	ctx := context.Background()
+
+	params := &SSHParam{
+		// Timeout: 30 * time.Second,
+		Address: "127.0.0.1",
+		Port:    port,
+		// UserQuest: "",
+		Username: "abc",
+		// PasswordQuest: "",
+		Password:            "123",
+		PrivateKey:          "",
+		Prompt:              "",
+		EnableCommand:       "",
+		EnablePasswordQuest: "",
+		EnablePassword:      "",
+		EnablePrompt:        "",
+		UseExternalSSH:      false,
+		UseCRLF:             true,
+	}
+	testSSHMore(t, ctx, params)
+
+	params.UseExternalSSH = true
+	testSSHMore(t, ctx, params)
+}
+
 func testSSHMore(t *testing.T, ctx context.Context, params *SSHParam) {
 	var buf bytes.Buffer
 	c, prompt, err := DailSSH(ctx, params, ServerWriter(&buf), ClientWriter(&buf), Question(AbcQuestion.Prompts(), AbcQuestion.Do()))

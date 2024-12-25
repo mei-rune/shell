@@ -46,6 +46,42 @@ func TestTelnetSimSimple(t *testing.T) {
 	testTelnet(t, ctx, params)
 }
 
+// func TestTelnetSimFail(t *testing.T) {
+// 	options := &telnetd.Options{}
+// 	options.AddUserPassword("abc", "123")
+
+// 	//options.WithEnable("ABC>", "enable", "password:", "testsx", "abc#", telnetd.Echo)
+// 	options.WithNoEnable("ABC>", telnetd.Echo)
+
+// 	listener, err := telnetd.StartServer(":", options)
+// 	if err != nil {
+// 		t.Error(err)
+// 		return
+// 	}
+// 	defer listener.Close()
+
+// 	port := listener.Port()
+
+// 	ctx := context.Background()
+
+// 	params := &TelnetParam{
+// 		// Timeout: 30 * time.Second,
+// 		Address: "127.0.0.1",
+// 		Port:    port,
+// 		// UserQuest: "",
+// 		Username: "<<none>>",
+// 		// PasswordQuest: "",
+// 		Password:            "123",
+// 		Prompt:              "",
+// 		EnableCommand:       "",
+// 		EnablePasswordQuest: "",
+// 		EnablePassword:      "",
+// 		EnablePrompt:        "",
+// 		UseCRLF:             true,
+// 	}
+// 	testTelnet(t, ctx, params)
+// }
+
 func TestTelnetSimWithNoUserNoPassword(t *testing.T) {
 	options := &telnetd.Options{}
 	options.AddUserPassword("<<none>>", "<<none>>")

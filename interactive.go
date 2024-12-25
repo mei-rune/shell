@@ -6,11 +6,19 @@ import (
 	"fmt"
 	"net"
 	"strconv"
-	"unicode"
 	"time"
+	"unicode"
 
 	"github.com/runner-mei/errors"
 )
+
+const (
+	// 这个是单次读数据的缺省 timeout 时间，不宜设置的太大，原
+	// 因请看本文件中的 FIXME: READ Timeout
+	DefaultReadTimeout  = 30 * time.Second
+	DefaultWriteTimeout = 10 * time.Second
+)
+
 
 const YesOrNo = "? [Y/N]:"
 
@@ -82,6 +90,7 @@ var (
 		[]byte("authorization failed"),
 		[]byte("Authorizate fail"),
 		[]byte("authorizate fail"),
+		[]byte("Unknown command"),
 		[]byte("Command authorization failed."),
 		[]byte("Unrecognized command found"),
 	}
@@ -128,11 +137,11 @@ var (
 	ChangeNow1Question     = Match("Change now? [Y/N]:", SayNoCRLF)
 	ChangeNow2Question     = Match("Change now?[Y/N]:", SayNoCRLF)
 	ChangePasswordQuestion = Match("change the password?", SayNoCRLF)
-	StoreKeyInCache1        = Match("Store key in cache? (y/n)", SayYes)
-	StoreKeyInCache2        = Match("Store key in cache? (y/n,", SayYes)
+	StoreKeyInCache1       = Match("Store key in cache? (y/n)", SayYes)
+	StoreKeyInCache2       = Match("Store key in cache? (y/n,", SayYes)
 	ContinueWithConnection = Match("Continue with connection? (y/n)", SayYes)
-	UpdateCachedKey1        = Match("Update cached key? (y/n),", SayYes)
-	UpdateCachedKey2        = Match("Update cached key? (y/n,", SayYes)
+	UpdateCachedKey1       = Match("Update cached key? (y/n),", SayYes)
+	UpdateCachedKey2       = Match("Update cached key? (y/n,", SayYes)
 	More                   = Match(MorePrompts, SaySpace)
 
 	DefaultMatchers = []Matcher{
@@ -263,8 +272,30 @@ func Expect(ctx context.Context, conn Conn, matchs ...Matcher) error {
 
 	more := false
 	for retryCount := 0; retryCount < maxRetryCount; retryCount++ {
+		now := time.Now()
 		idx, recvBytes, err := conn.Expect(prompts)
 		if err != nil {
+			if IsTimeout(err) {
+				// FIXME: READ Timeout
+				// 这个是在现场的一台 迪普 设备上发现的问题, 按理说我 show 配置时
+				// 设备不停地显示配置并在最后一行显示 -- more -- 类似的字样，结果
+				// 这个设备会偶尔不在最后一行显示 -- more -- ，我们向它发一个空格
+				// 时它会在下一次的第一行显示 -- more --，我们就卡死在那里了，所以
+				// 我们发现超时的话可以尝试发一个空格试一下，说不定就好了。
+				// 因为这个原因, 配置 DefaultReadTimeout 不宜太大
+				// 
+				// 我添加了一个  TestSSHSimErrorMore 来测试这个场景
+				// 
+				// 原始问题看这个  https://xxxx/xxx-test/test/issues/6892
+				err1 := conn.Sendln([]byte(" "))
+				if err1 == nil {
+					continue
+				}
+
+				recvBytes = append(recvBytes, []byte("\r\nsendln\r\n")...)
+				recvBytes = append(recvBytes, []byte(err1.Error())...)
+				recvBytes = append(recvBytes, []byte("\r\n")...)
+			}
 			if bytes.Contains(recvBytes, []byte("Network error:")) {
 				if bytes.Contains(recvBytes, []byte("Connection timed out")) {
 					return &net.OpError{Op: "dial",
@@ -273,7 +304,8 @@ func Expect(ctx context.Context, conn Conn, matchs ...Matcher) error {
 				}
 				return errors.New(string(recvBytes))
 			}
-			err = errors.Wrap(err, "read util '"+string(bytes.Join(prompts, []byte(",")))+"' failed")
+
+			err = errors.Wrap(err, "["+strconv.Itoa(retryCount)+","+time.Now().Sub(now).Truncate(time.Second).String()+"] read util '"+string(bytes.Join(prompts, []byte(",")))+"' failed")
 			return errors.WrapWithSuffix(err, "\r\n"+ToHexStringIfNeed(recvBytes))
 		}
 
@@ -344,7 +376,6 @@ func UserLogin(ctx context.Context, conn Conn, userPrompts [][]byte, username []
 		if IsNonePassword(password) {
 			return false, errors.New("password missing")
 		}
-
 		if IsEmptyPassword(password) {
 			password = []byte{}
 		}
@@ -356,7 +387,7 @@ func UserLogin(ctx context.Context, conn Conn, userPrompts [][]byte, username []
 		return false, nil
 	})
 	copyed[2] = Match(prompts, func(c Conn, bs []byte, nidx int) (bool, error) {
-		if  bs[len(bs)-1] != '@' || status == 2 {
+		if bs[len(bs)-1] != '@' || status == 2 {
 			status = 3
 		}
 		return false, nil
@@ -488,23 +519,21 @@ func GetPrompt(bs []byte, prompts [][]byte) []byte {
 			return unicode.IsSpace(r)
 		})
 		if len(fullPrompt) > 0 {
-				for _, prompt := range prompts {
-					if bytes.HasSuffix(fullPrompt, prompt) {
-						if 2 <= len(fullPrompt) && ']' == fullPrompt[len(fullPrompt)-2] {
-							idx := bytes.LastIndex(fullPrompt, []byte("["))
-							if idx > 0 {
-								fullPrompt = fullPrompt[idx:]
-							}
+			for _, prompt := range prompts {
+				if bytes.HasSuffix(fullPrompt, prompt) {
+					if 2 <= len(fullPrompt) && ']' == fullPrompt[len(fullPrompt)-2] {
+						idx := bytes.LastIndex(fullPrompt, []byte("["))
+						if idx > 0 {
+							fullPrompt = fullPrompt[idx:]
 						}
-						return fullPrompt
 					}
+					return fullPrompt
 				}
+			}
 		}
 	}
 
 	// fmt.Println("===", string(fullPrompt))
-
-
 
 	return nil
 }
@@ -656,7 +685,6 @@ func WithView(ctx context.Context, conn Conn, cmd []byte, newPrompts [][]byte) (
 	if len(output) == 0 {
 		return nil, errors.New("read prompt failed, received is empty")
 	}
-
 
 	prompt := GetPrompt(output, newPrompts)
 	if len(prompt) == 0 {

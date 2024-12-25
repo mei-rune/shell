@@ -12,8 +12,10 @@ import (
 )
 
 const (
-	DefaultReadTimeout  = 60 * time.Second
-	DefaultWriteTimeout = 10 * time.Second
+	// 这个是单次读数据的缺省 timeout 时间，不宜设置的太大，原
+	// 因请看 interactive.go 中的 FIXME: READ Timeout
+	DefaultReadTimeout  = shell.DefaultReadTimeout
+	DefaultWriteTimeout = shell.DefaultWriteTimeout
 )
 
 func JoinHostPort(addr, port string) string {
@@ -87,6 +89,43 @@ func DailSSH(ctx context.Context, params *SSHParam, args ...Option) (shell.Conn,
 			opts.cWriter = cw
 		} else {
 			opts.cWriter = io.MultiWriter(opts.cWriter, cw)
+		}
+	}
+
+	if false {
+		if opts.sWriter != nil {
+			sWriter := opts.sWriter
+			sw := shell.WriteFunc(func(p []byte) (int, error) {
+				io.WriteString(sWriter, "s(")
+				io.WriteString(sWriter, time.Now().Format(time.RFC3339))
+				io.WriteString(sWriter, "):")
+				io.WriteString(sWriter, shell.ToHexStringIfNeed(p))
+				io.WriteString(sWriter, "\r\n")
+				io.WriteString(sWriter, "(")
+				io.WriteString(sWriter, time.Now().Format(time.RFC3339))
+				io.WriteString(sWriter, ")")
+				io.WriteString(sWriter, "\r\n")
+				return len(p), nil
+			})
+			opts.sWriter = sw
+		}
+
+		if opts.cWriter != nil {
+			cWriter := opts.cWriter
+			cw := shell.WriteFunc(func(p []byte) (int, error) {
+				io.WriteString(cWriter, "c(")
+				io.WriteString(cWriter, time.Now().Format(time.RFC3339))
+				io.WriteString(cWriter, "):")
+				io.WriteString(cWriter, shell.ToHexStringIfNeed(p))
+				io.WriteString(cWriter, "\r\n")
+
+				io.WriteString(cWriter, "(")
+				io.WriteString(cWriter, time.Now().Format(time.RFC3339))
+				io.WriteString(cWriter, ")")
+				io.WriteString(cWriter, "\r\n")
+				return len(p), nil
+			})
+			opts.cWriter = cw
 		}
 	}
 

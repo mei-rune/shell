@@ -125,7 +125,7 @@ func NewTelnet2(conn net.Conn, w io.Writer, r io.Reader) *Telnet {
 
 func TelnetWrap(c *Telnet, tees, teec io.Writer) *ConnWrapper {
 	c.errc = make(chan error, 1)
-	p := MakePipe(2048)
+	p := MakePipe(0)
 	go func() {
 
 		var a [1]byte

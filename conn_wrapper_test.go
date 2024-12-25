@@ -8,7 +8,7 @@ import (
 func TestExpect(t *testing.T) {
 	for _, m := range testMatchs {
 
-		p := MakePipe(1024)
+		p := MakePipe(0)
 		wrapper := MakeConnWrapper(nil, nil, p)
 
 		for _, d := range m.data {
